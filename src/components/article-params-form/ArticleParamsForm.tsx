@@ -6,7 +6,7 @@ import { clsx } from 'clsx';
 import { Select } from 'src/ui/select';
 import { Text } from 'src/ui/text';
 import { RadioGroup } from 'src/ui/radio-group';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
 	backgroundColors,
 	defaultArticleState,
@@ -23,10 +23,36 @@ type ArticleParamsFormProps = {
 };
 
 export const ArticleParamsForm = ({ onApply }: ArticleParamsFormProps) => {
-	const firstSelectRef = useRef<HTMLSelectElement>(null);
-
-	const [isOpen, setIsOpen] = useState<boolean>(false);
+	const [isFormOpen, setIsFormOpen] = useState<boolean>(false);
 	const [formState, setFormState] = useState(defaultArticleState);
+	const sidebarRef = useRef<HTMLElement | null>(null);
+
+	useEffect(() => {
+		if (!isFormOpen) return;
+
+		function handleClickOutside(event: MouseEvent) {
+			if (
+				sidebarRef.current &&
+				!sidebarRef.current.contains(event.target as Node)
+			) {
+				setIsFormOpen(false);
+			}
+		}
+
+		function handleEscKey(event: KeyboardEvent) {
+			if (event.key === 'Escape') {
+				setIsFormOpen(false);
+			}
+		}
+
+		document.addEventListener('mousedown', handleClickOutside);
+		document.addEventListener('keydown', handleEscKey);
+
+		return () => {
+			document.removeEventListener('mousedown', handleClickOutside);
+			document.removeEventListener('keydown', handleEscKey);
+		};
+	}, [isFormOpen]);
 
 	function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
 		event.preventDefault();
@@ -48,13 +74,16 @@ export const ArticleParamsForm = ({ onApply }: ArticleParamsFormProps) => {
 	return (
 		<>
 			<ArrowButton
-				isOpen={isOpen}
+				isOpen={isFormOpen}
 				onClick={() => {
-					setIsOpen(!isOpen);
+					setIsFormOpen(!isFormOpen);
 				}}
 			/>
 			<aside
-				className={clsx(styles.container, { [styles.container_open]: isOpen })}>
+				ref={sidebarRef}
+				className={clsx(styles.container, {
+					[styles.container_open]: isFormOpen,
+				})}>
 				<form
 					className={styles.form}
 					onSubmit={handleSubmit}
